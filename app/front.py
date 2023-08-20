@@ -115,7 +115,8 @@ metrics_options = [{'label': i, 'value': i} for i in metrics_general]
 
 page_model =        html.Div([
                                 html.H1(children='Model ',  style={'textAlign':'center'}),
-                                html.Button('Report Generate', id='button-model-report', n_clicks=0,style={}),
+
+
                                 html.Div('Select Model'),
                                 #dcc.Dropdown(df.Model.unique(), 'unet',  id='dropdown-models'),
                                 
@@ -127,19 +128,25 @@ page_model =        html.Div([
                                 
                                     html.Div([
                                                 dcc.Dropdown(df.Model.unique(), 'unet',  id='dropdown-models')
-                                                ], style={'display': 'inline-block','width': '49%', 'padding': '0 20'}),
+                                                ], style={'display': 'inline-block','width': '49%'}),
                                     html.Div([
-                                                dbc.DropdownMenu(
-                                                children=[
-                                                    dcc.Checklist(id='metrics-dropdown',
+                                                   dcc.Checklist(id='metrics-dropdown',
                                                         options=metrics_list,
                                                         value=metrics_list,
                                                     ),
-                                                ],
-                                                label="",
-                                            )
+
+                                            #    dbc.DropdownMenu(
+                                             #   children=[
+                                              #      dcc.Checklist(id='metrics-dropdown1',
+                                               #         options=metrics_list,
+                                                #        value=metrics_list,
+                                                 #   ),
+                                               # ],
+                                             #   label="",
+                                            #)
                                                 ], style={'display': 'inline-block', 'width': '49%'}),
-                                               
+
+                                html.Button('Report Generate', id='button-model-report', n_clicks=0,style={}),               
                                 # html.Div(
                                 #             children=dbc.DropdownMenu(
                                 #                 children=[
@@ -177,8 +184,8 @@ page_model_len =    html.Div([
                                             children=dbc.DropdownMenu(
                                                 children=[
                                                     dcc.Checklist(id='metrics-unet-dropdown',
-                                                        options=df.metrics.unique(),
-                                                        value=df.metrics.unique(),
+                                                        options=metrics_list,
+                                                        value=metrics_list,
                                                     ),
                                                 ],
                                                 label = "Metric Selector",
@@ -189,6 +196,22 @@ page_model_len =    html.Div([
                                 dcc.Graph(id='graph-unet-model-len'),
 
                                 dcc.Dropdown(df.Model.unique(), 'logisticRegression', id='dropdown-model_len-model'),
+                                
+
+                                html.Div(
+                                            children=dbc.DropdownMenu(
+                                                children=[
+                                                    dcc.Checklist(id='metrics-othermodels-dropdown',
+                                                        options=df.metrics.unique(),
+                                                        value=df.metrics.unique(),
+                                                    ),
+                                                ],
+                                                label = "Metric Selector",
+                                            ),
+                                        ),
+
+
+
                                     html.Div([
                                                 dcc.Graph(id='graph-logisticregression')
                                                 ], style={'width': '49%', 'display': 'inline-block', 'padding': '0 20'}),
@@ -213,7 +236,7 @@ page_reports =      html.Div([
                                 html.H1(children='Reports Grnerate', style={'textAlign':'center'}),
                                 html.P("Reports"),
                             ])
-
+# aqui concatenando  as páginas ao menu
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def render_page_content(pathname):
     if pathname == "/":
@@ -237,7 +260,23 @@ def render_page_content(pathname):
         className="p-3 bg-light rounded-3",
     )
 
-# model len page
+#############################
+# mage model len 
+#############################
+# atualizando o segundo menu a partir do prrimeiro
+@app.callback(
+    Output('metrics-unet-dropdown', 'options'),
+    [Input('dropdown-model_len', 'value')]
+)
+def update_metrics_page_model_len(selected_categoria):
+    data_model = df.loc[df['model_len']==f'{selected_categoria}'].dropna()
+    data_unet = data_model[data_model.Model=='unet'].dropna()
+    filtered_items = data_unet.metrics.unique()
+    #df[df['Model'] == selected_categoria]['Item'].unique()
+    item_options = [{'label': item, 'value': item} for item in filtered_items]
+    return item_options
+
+# model len page firt graph
 @app.callback(
     Output(component_id = 'graph-unet-model-len', component_property = 'figure'),
     Input('dropdown-model_len', 'value'),
@@ -252,12 +291,14 @@ def update_graph(value, metric):
 
     return graph
 
+# a partir do model len obtido, verificar outro modelo chamado que não seja unet
+
 
 @app.callback(
     Output(component_id = 'graph-logisticregression', component_property = 'figure'),
     Input('dropdown-model_len', 'value'),
     Input('dropdown-model_len-model', 'value'),
-    Input('metrics-unet-dropdown','value')
+    Input('metrics-othermodels-dropdown','value')
 )
 def update_graph_model_metric_only(len,model,metric):
 
@@ -273,7 +314,7 @@ def update_graph_model_metric_only(len,model,metric):
     Output(component_id = 'graph-logisticregressionproba', component_property = 'figure'),
     Input('dropdown-model_len', 'value'),
     Input('dropdown-model_len-model', 'value'),
-    Input('metrics-unet-dropdown','value')
+    Input('metrics-othermodels-dropdown','value')
 )
 def update_graph_model_metric_unetcompare(len, model, metric):
 
@@ -296,12 +337,17 @@ def update_table(value):
     data=data_to_table.to_dict('records')
     return data
 
+
+##################################
+# mage model
+##################################
+
 # atualizando o segundo menu
 @app.callback(
     Output('metrics-dropdown', 'options'),
     [Input('dropdown-models', 'value')]
 )
-def update_item_options(selected_categoria):
+def update_metrics_page_model(selected_categoria):
     data_model = df.loc[df['Model']==f'{selected_categoria}'].dropna()
     filtered_items = data_model.metrics.unique()
     #df[df['Model'] == selected_categoria]['Item'].unique()
@@ -309,9 +355,6 @@ def update_item_options(selected_categoria):
     return item_options
 
 # page model graph A
-
-##########################################
-
 
 @app.callback(
     Output(component_id = 'graph-model', component_property = 'figure'),
@@ -383,7 +426,11 @@ def update_table_model_b(value):
     data=data_to_table.to_dict('records')
     return data
 
+
+##################################
 # page Unet  first graph 
+##################################
+
 @app.callback(
     Output(component_id = 'graph-unet', component_property = 'figure'),
     Input('dropdown-unet', 'value')
